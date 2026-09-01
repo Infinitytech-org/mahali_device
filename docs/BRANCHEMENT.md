@@ -129,8 +129,23 @@ MAHALI_RELAY6_PIN=20   # pin 38
 MAHALI_RELAY7_PIN=21   # pin 40
 MAHALI_RELAY8_PIN=26   # pin 37
 ```
-…puis re-câble IN4→GPIO12, IN5→GPIO16, IN6→GPIO20, IN7→GPIO21, IN8→GPIO26.
+…puis re-câble selon le bloc « ÉCRAN 3,5" SPI » de `.env.example`
+(IN1→GPIO12, IN4→GPIO13, IN5→GPIO16, IN6→GPIO19, ECHO→GPIO20).
 L'écran SPI garde alors GPIO 8/9/10/11 + 24/25 pour lui.
+
+**Physique** : l'écran étant un chapeau qui couvre les 40 broches, utilise un
+**connecteur empilable (stacking header)** ou une **nappe GPIO de dérivation**
+pour accéder aux broches restantes (relais/capteurs).
+
+**Pilote de l'écran** (pour qu'il s'allume) : la plupart des 3,5" SPI ont besoin
+d'un overlay. Pour un « RPi 3.5 inch » générique :
+```bash
+# Option simple : ajouter l'overlay dans /boot/firmware/config.txt
+sudo bash -c 'echo "dtoverlay=piscreen,speed=16000000,rotate=90" >> /boot/firmware/config.txt'
+sudo reboot
+```
+Si l'écran reste blanc, installe le pilote du fabricant (ex. dépôt `LCD-show`
+de ton modèle) — indique-moi la marque exacte et je te donne les commandes.
 
 ---
 
