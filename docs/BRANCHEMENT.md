@@ -118,20 +118,24 @@ Branche-le sur le port **HDMI** (mini-HDMI + adaptateur) ou sur le connecteur
 **DSI** (nappe). Rien à faire côté GPIO : les 8 relais gardent leurs broches.
 
 **Cas B — écran 3,5″ SPI (chapeau GPIO).**
-Il faut **libérer le SPI** en déplaçant les relais 4/5/6/7/8 sur d'autres
-broches. Mets ces variables dans `~/mahali/raspberry/.env` (ou l'environnement
-du service) :
+On regroupe **tous** les relais + le HC-SR04 sur les broches « hautes » que
+l'écran n'utilise jamais. Décommente le bloc « ÉCRAN 3,5" SPI » de `.env.example`
+et câble ainsi :
 
-```bash
-MAHALI_RELAY4_PIN=12   # pin 32
-MAHALI_RELAY5_PIN=16   # pin 36
-MAHALI_RELAY6_PIN=20   # pin 38
-MAHALI_RELAY7_PIN=21   # pin 40
-MAHALI_RELAY8_PIN=26   # pin 37
-```
-…puis re-câble selon le bloc « ÉCRAN 3,5" SPI » de `.env.example`
-(IN1→GPIO12, IN4→GPIO13, IN5→GPIO16, IN6→GPIO19, ECHO→GPIO20).
-L'écran SPI garde alors GPIO 8/9/10/11 + 24/25 pour lui.
+| Fonction | GPIO | pin |
+|---|---|---|
+| IN1 | 5 | 29 |
+| IN2 | 6 | 31 |
+| IN3 | 12 | 32 |
+| IN4 | 13 | 33 |
+| IN5 | 16 | 36 |
+| IN6 | 19 | 35 |
+| IN7 | 20 | 38 |
+| IN8 | 21 | 40 |
+| HC-SR04 TRIG | 26 | 37 |
+| HC-SR04 ECHO | 4 | 7 (via pont diviseur) |
+
+L'écran garde le SPI (GPIO 7/8/9/10/11 + 24/25) et l'I2C reste sur GPIO 2/3.
 
 **Physique** : l'écran étant un chapeau qui couvre les 40 broches, utilise un
 **connecteur empilable (stacking header)** ou une **nappe GPIO de dérivation**
