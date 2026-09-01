@@ -1,0 +1,17 @@
+[Unit]
+Description=Mahali - Contrôleur de relais (8 canaux GPIO)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# "pi" doit appartenir aux groupes gpio + i2c (raspi-config / usermod -aG).
+User=pi
+WorkingDirectory=/home/pi/mahali/raspberry
+EnvironmentFile=/home/pi/mahali/raspberry/.env
+ExecStart=/home/pi/mahali/raspberry/.venv/bin/python relay_controller.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

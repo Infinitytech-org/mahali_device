@@ -1,0 +1,17 @@
+[Unit]
+Description=Mahali - Streaming caméra (module Raspberry Pi Camera, MJPEG)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# picamera2 est un paquet SYSTÈME (apt) -> python système, pas le venv.
+# "pi" doit appartenir au groupe "video" (sudo usermod -aG video pi).
+User=pi
+WorkingDirectory=/home/pi/mahali/raspberry
+ExecStart=/usr/bin/python3 /home/pi/mahali/raspberry/camera_stream.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

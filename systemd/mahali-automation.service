@@ -1,0 +1,17 @@
+[Unit]
+Description=Mahali - Service d'automatisation (hystérésis, pompe, sécurité réservoir)
+After=network-online.target mahali-relays.service
+Wants=network-online.target
+Requires=mahali-relays.service
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/mahali/raspberry
+EnvironmentFile=/home/pi/mahali/raspberry/.env
+ExecStart=/home/pi/mahali/raspberry/.venv/bin/python automation_service.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

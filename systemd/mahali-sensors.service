@@ -1,0 +1,16 @@
+[Unit]
+Description=Mahali - Service capteurs (BME280 x3, pH, niveau d'eau)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/mahali/raspberry
+EnvironmentFile=/home/pi/mahali/raspberry/.env
+ExecStart=/home/pi/mahali/raspberry/.venv/bin/python sensor_service.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

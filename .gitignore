@@ -1,0 +1,11 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.env
+*.log
+bringup.log
+.DS_Store
+# Identifiants du device (générés à l'exécution, jamais versionnés)
+device.json
+.mahali/
