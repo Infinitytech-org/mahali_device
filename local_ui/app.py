@@ -80,6 +80,22 @@ def _mqtt_loop() -> None:
             time.sleep(3)
 
 
+def _device_info() -> dict:
+    """Infos device (device_id, serre) depuis ~/.mahali/device.json."""
+    try:
+        from agent import store
+
+        d = store.load()
+        return {
+            "device_id": d.get("device_id", ""),
+            "name": d.get("name", ""),
+            "greenhouse": d.get("greenhouse", ""),
+            "greenhouse_name": d.get("greenhouse_name", ""),
+        }
+    except Exception:
+        return {}
+
+
 def publish_relay(channel: int, state: bool) -> None:
     body = {"channel": channel, "state": state, "source": "local_ui"}
     _mqtt.publish(f"{PREFIX}/relays/cmd", json.dumps(body), qos=1)
@@ -103,7 +119,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, html.encode(), "text/html; charset=utf-8")
         elif self.path == "/api/state":
             fresh = _state["updated_at"] and (time.time() - _state["updated_at"] < 30)
-            body = json.dumps({**_state, "fresh": bool(fresh), "slug": SLUG})
+            body = json.dumps({**_state, "fresh": bool(fresh), "slug": SLUG, "device": _device_info()})
             self._send(200, body.encode())
         elif self.path.startswith("/camera/"):
             self._proxy_camera(self.path.replace("/camera", "", 1))
