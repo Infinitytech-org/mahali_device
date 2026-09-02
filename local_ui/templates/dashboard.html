@@ -113,18 +113,25 @@
   </div>
 
 <script>
-  const SENS = {
-    temp_entry:{l:"Température",u:"°C",c:"--temp",min:0,max:50},
-    humidity_entry:{l:"Humidité",u:"%",c:"--hum",min:0,max:100},
-    ph:{l:"pH solution",u:"",c:"--ph",min:0,max:14},
-    water_level:{l:"Réservoir",u:"%",c:"--water",min:0,max:100},
-  };
-  const ORDER = ["temp_entry","humidity_entry","ph","water_level"];
+  // Chaque jauge agrège plusieurs clés possibles (zones entrée/centre/sortie) :
+  // on affiche la 1re zone qui a une valeur, pour rester robuste si un capteur
+  // manque.
+  const GROUPS = [
+    {l:"Température",u:"°C",c:"--temp",min:0,max:50,keys:["temp_entry","temp_center","temp_exit"]},
+    {l:"Humidité",u:"%",c:"--hum",min:0,max:100,keys:["humidity_entry","humidity_center","humidity_exit"]},
+    {l:"pH solution",u:"",c:"--ph",min:0,max:14,keys:["ph"]},
+    {l:"Réservoir",u:"%",c:"--water",min:0,max:100,keys:["water_level"]},
+  ];
   const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const fmt = v => v==null? "—" : (Math.round(v*10)/10);
 
-  function ring(key, val){
-    const m = SENS[key]; const col = cssv(m.c);
+  function pick(sensors, keys){
+    for(const k of keys){ if(sensors && sensors[k] && sensors[k].value!=null) return sensors[k].value; }
+    return null;
+  }
+
+  function ring(m, val){
+    const col = cssv(m.c);
     const frac = val==null?0:Math.max(0,Math.min(1,(val-m.min)/(m.max-m.min)));
     const R=28, C=2*Math.PI*R, off=C*(1-frac*0.75), rot=135;
     return `<div class="ring">
@@ -145,10 +152,10 @@
 
   function renderGauges(sensors){
     const g = document.getElementById("gauges"); g.innerHTML="";
-    ORDER.forEach(k=>{
-      const v = sensors && sensors[k] ? sensors[k].value : null;
+    GROUPS.forEach(m=>{
+      const v = pick(sensors, m.keys);
       g.insertAdjacentHTML("beforeend",
-        `<div class="gauge">${ring(k,v)}<div class="lbl">${SENS[k].l}</div></div>`);
+        `<div class="gauge">${ring(m,v)}<div class="lbl">${m.l}</div></div>`);
     });
   }
 
