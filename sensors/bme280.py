@@ -65,6 +65,12 @@ class BME280Array:
         if not self._calib:
             logger.warning("Aucun BME280 détecté sur les canaux configurés.")
 
+    def available_zones(self) -> list:
+        """Zones dont le capteur est réellement présent (ou toutes en simu)."""
+        if self.simulate:
+            return list(config.BME280_MUX_CHANNELS.keys())
+        return list(self._calib.keys())
+
     def read_zone(self, sensor_key: str) -> tuple[float, float]:
         """Retourne (température °C, humidité %) pour la zone `sensor_key`."""
         if self.simulate:

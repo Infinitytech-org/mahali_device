@@ -93,6 +93,11 @@ BME280_HUMIDITY_KEY_FOR = {
     SENSOR_TEMP_EXIT: SENSOR_HUMIDITY_EXIT,
 }
 
+# Capteurs optionnels : désactiver ceux qui ne sont pas branchés pour éviter
+# des tentatives de lecture (et des logs) inutiles.
+PH_ENABLED = _bool("MAHALI_PH_ENABLED", "true")
+WATER_LEVEL_ENABLED = _bool("MAHALI_WATER_LEVEL_ENABLED", "true")
+
 # --- ADS1115 + électrode pH (doc §3.3.2) ------------------------------------
 ADS1115_ADDRESS = int(os.environ.get("MAHALI_ADS1115_ADDR", "0x48"), 16)
 ADS1115_PH_CHANNEL = _int("MAHALI_ADS1115_PH_CHANNEL", 0)  # entrée A0

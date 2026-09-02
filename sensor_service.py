@@ -49,27 +49,32 @@ class SensorService:
         logger.debug("Publié %s = %s %s", sensor_key, value, unit)
 
     def read_and_publish_once(self) -> None:
-        for sensor_key in (config.SENSOR_TEMP_ENTRY, config.SENSOR_TEMP_CENTER, config.SENSOR_TEMP_EXIT):
+        # On ne lit QUE les zones dont le capteur a été détecté à l'init
+        # (available_zones) : pas de capteur = pas de tentative = pas d'erreur.
+        for sensor_key in self._bme.available_zones():
             try:
                 temp, humidity = self._bme.read_zone(sensor_key)
-            except Exception:  # noqa: BLE001 - on continue malgré une panne capteur
-                logger.exception("Erreur lecture BME280 (%s)", sensor_key)
+            except Exception as exc:  # noqa: BLE001 - on continue malgré une panne
+                logger.warning("Lecture BME280 %s ignorée: %s", sensor_key, exc)
                 continue
             self._publish(sensor_key, temp, config.SENSOR_UNITS[sensor_key])
             humidity_key = config.BME280_HUMIDITY_KEY_FOR[sensor_key]
             self._publish(humidity_key, humidity, config.SENSOR_UNITS[humidity_key])
 
-        try:
-            ph_value = self._ph.read_ph()
-            self._publish(config.SENSOR_PH, ph_value, config.SENSOR_UNITS[config.SENSOR_PH])
-        except Exception:  # noqa: BLE001
-            logger.exception("Erreur lecture pH (ADS1115)")
+        # pH et niveau d'eau : désactivables (capteur non branché) via config.
+        if config.PH_ENABLED:
+            try:
+                ph_value = self._ph.read_ph()
+                self._publish(config.SENSOR_PH, ph_value, config.SENSOR_UNITS[config.SENSOR_PH])
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Lecture pH ignorée: %s", exc)
 
-        try:
-            level = self._water.read_level_percent()
-            self._publish(config.SENSOR_WATER_LEVEL, level, config.SENSOR_UNITS[config.SENSOR_WATER_LEVEL])
-        except Exception:  # noqa: BLE001
-            logger.exception("Erreur lecture niveau d'eau (HC-SR04)")
+        if config.WATER_LEVEL_ENABLED:
+            try:
+                level = self._water.read_level_percent()
+                self._publish(config.SENSOR_WATER_LEVEL, level, config.SENSOR_UNITS[config.SENSOR_WATER_LEVEL])
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Lecture niveau d'eau ignorée: %s", exc)
 
     def run(self) -> None:
         mqtt_client.connect_with_retry(self._client)
