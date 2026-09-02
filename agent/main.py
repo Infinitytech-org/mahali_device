@@ -30,6 +30,26 @@ POLL_PAIRED = 5          # s entre deux vérifs d'appairage
 HEARTBEAT_EVERY = 30     # s entre deux heartbeats une fois en marche
 
 
+def _load_env() -> None:
+    """Charge raspberry/.env dans os.environ (sans écraser l'existant).
+
+    Permet de configurer le câblage via .env : broches relais, canaux du mux
+    (MAHALI_MUX_CH_ENTRY/CENTER/EXIT), broker, etc. — repris par config.py et
+    par tous les services lancés.
+    """
+    env_file = HERE / ".env"
+    try:
+        for line in env_file.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            key, value = key.strip(), value.strip().strip('"').strip("'")
+            os.environ.setdefault(key, value)
+    except FileNotFoundError:
+        pass
+
+
 def _show_hardware(hw: dict) -> None:
     console.title("Matériel détecté")
     console.kv("Modèle", hw.get("model", "?"))
@@ -197,6 +217,7 @@ def _supervise(mqtt: dict, hw: dict, secret: str) -> None:
 
 
 def main() -> None:
+    _load_env()
     console.banner()
     hw = hardware.detect()
     _show_hardware(hw)

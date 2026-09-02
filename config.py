@@ -80,10 +80,12 @@ I2C_BUS_NUMBER = _int("MAHALI_I2C_BUS", 1)
 
 # Zone -> canal du multiplexeur (0..7). Capteur 1 = entrée est (1 m du sol),
 # capteur 2 = zone centrale (2 m), capteur 3 = sortie ouest (3 m).
+# Configurable par variable d'environnement (utile si un canal du mux est
+# défaillant : on branche le capteur sur un autre canal).
 BME280_MUX_CHANNELS = {
-    SENSOR_TEMP_ENTRY: 0,
-    SENSOR_TEMP_CENTER: 1,
-    SENSOR_TEMP_EXIT: 2,
+    SENSOR_TEMP_ENTRY: _int("MAHALI_MUX_CH_ENTRY", 0),
+    SENSOR_TEMP_CENTER: _int("MAHALI_MUX_CH_CENTER", 1),
+    SENSOR_TEMP_EXIT: _int("MAHALI_MUX_CH_EXIT", 2),
 }
 BME280_HUMIDITY_KEY_FOR = {
     SENSOR_TEMP_ENTRY: SENSOR_HUMIDITY_ENTRY,
