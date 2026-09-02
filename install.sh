@@ -24,8 +24,12 @@ sudo raspi-config nonint do_spi 0 2>/dev/null || echo "   (active le SPI à la m
 echo "==> 2/6  Paquets système"
 sudo apt-get update -y
 sudo apt-get install -y python3-venv python3-pip i2c-tools mosquitto mosquitto-clients git
+# Caméra + GPIO : paquets SYSTÈME (pas pip). Le venv les verra via
+# --system-site-packages. python3-picamera2 = flux caméra ; python3-rpi.gpio = relais.
+sudo apt-get install -y python3-picamera2 python3-rpi.gpio || \
+  echo "   (picamera2/rpi.gpio partiels — non bloquant)"
 # libgpiod : nom du paquet différent selon la version de l'OS (2 sur Bookworm,
-# 3 sur Trixie). Non bloquant si absent (RPi.GPIO/rpi-lgpio n'en dépendent pas).
+# 3 sur Trixie). Non bloquant si absent.
 sudo apt-get install -y libgpiod2 || sudo apt-get install -y libgpiod3 || \
   echo "   (libgpiod introuvable — non bloquant, on continue)"
 
@@ -41,12 +45,14 @@ EOF
 sudo systemctl enable mosquitto 2>/dev/null || true
 sudo systemctl restart mosquitto 2>/dev/null || true
 
-echo "==> 5/6  Environnement Python (.venv) + dépendances"
-python3 -m venv .venv
+echo "==> 5/6  Environnement Python (.venv, avec accès aux paquets système)"
+# --system-site-packages : indispensable pour que le venv voie picamera2 et
+# RPi.GPIO installés par APT (impossibles à installer par pip sous Bookworm+).
+python3 -m venv --system-site-packages .venv
 ./.venv/bin/pip install --upgrade pip wheel >/dev/null
 ./.venv/bin/pip install -r requirements.txt || {
   echo "   RPi.GPIO a échoué -> tentative rpi-lgpio (Bookworm/Pi5)"
-  ./.venv/bin/pip install paho-mqtt smbus2 bme280 rpi-lgpio
+  ./.venv/bin/pip install paho-mqtt smbus2 RPi.bme280 rpi-lgpio
 }
 
 echo "==> 6/6  Services systemd (agent + kiosque)"

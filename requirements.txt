@@ -7,5 +7,7 @@ paho-mqtt>=1.6,<2.0
 # bascule automatiquement en mode simulation s'il ne les trouve pas — donc
 # inutile de les installer sur une machine de dev/CI sans capteurs) :
 smbus2>=0.4,<0.5      # bus I2C (TCA9548A, BME280, ADS1115)
-bme280>=0.6,<0.7       # driver BME280 (température + humidité)
+RPi.bme280>=0.2,<0.3   # driver BME280 (import "bme280" : load_calibration_params/sample)
 RPi.GPIO>=0.7,<1.0      # GPIO (relais, HC-SR04) — Raspberry Pi uniquement
+# NB caméra : picamera2 s'installe par APT (python3-picamera2), pas par pip.
+# Le venv doit être créé avec --system-site-packages pour le voir.
