@@ -98,7 +98,7 @@
 
     <!-- CAMÉRA -->
     <section class="page" id="p-cam">
-      <div class="camwrap"><img class="cam" id="cam" alt="caméra" src="{{CAMERA}}"
+      <div class="camwrap"><img class="cam" id="cam" alt="caméra"
         onerror="this.style.opacity=.3;this.alt='Caméra indisponible'"></div>
     </section>
 
@@ -202,9 +202,15 @@
   ["click","touchstart","keydown"].forEach(ev=>window.addEventListener(ev,()=>lastTouch=Date.now(),{passive:true}));
   setInterval(()=>{ if(Date.now()-lastTouch>180000){ document.querySelector('.nav[data-p="vue"]').click(); } },5000);
 
-  // Horloge + caméra anti-gel
+  // Caméra : flux MJPEG servi DIRECTEMENT par le Pi sur le port 8080 (même
+  // machine que ce tableau de bord) — pas de proxy, image nette.
+  const CAM = `http://${location.hostname}:8080/stream`;
+  function loadCam(){ const c=document.getElementById("cam"); if(c){ c.style.opacity=1; c.src = CAM + "?t=" + Date.now(); } }
+  loadCam();
+
+  // Horloge + caméra anti-gel (recharge le flux périodiquement)
   setInterval(()=>{ document.getElementById("clock").textContent=new Date().toLocaleTimeString("fr-FR"); },1000);
-  setInterval(()=>{ const c=document.getElementById("cam"); if(c) c.src="{{CAMERA}}?t="+Date.now(); },180000);
+  setInterval(loadCam, 180000);
 
   tick(); setInterval(tick,3000);
 </script>
