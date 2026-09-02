@@ -49,14 +49,30 @@ class BME280Array:
         self._bus = smbus2.SMBus(config.I2C_BUS_NUMBER)
         self._mux = TCA9548A(config.I2C_BUS_NUMBER, config.TCA9548A_ADDRESS)
         for sensor_key, channel in config.BME280_MUX_CHANNELS.items():
-            self._mux.select_channel(channel)
-            self._calib[sensor_key] = bme280_lib.load_calibration_params(self._bus, config.BME280_ADDRESS)
+            # Tolérant : un capteur absent/défaillant sur un canal ne doit pas
+            # empêcher les autres zones de fonctionner.
+            try:
+                self._mux.select_channel(channel)
+                self._calib[sensor_key] = bme280_lib.load_calibration_params(
+                    self._bus, config.BME280_ADDRESS
+                )
+                logger.info("BME280 zone %s détecté (canal %s).", sensor_key, channel)
+            except OSError as exc:
+                logger.warning(
+                    "BME280 zone %s (canal %s) absent/injoignable: %s — zone ignorée.",
+                    sensor_key, channel, exc,
+                )
+        if not self._calib:
+            logger.warning("Aucun BME280 détecté sur les canaux configurés.")
 
     def read_zone(self, sensor_key: str) -> tuple[float, float]:
         """Retourne (température °C, humidité %) pour la zone `sensor_key`."""
         if self.simulate:
             return self._simulate(sensor_key)
 
+        if sensor_key not in self._calib:
+            # Zone sans capteur (absent à l'init) : on ne bloque pas le service.
+            raise RuntimeError(f"BME280 zone {sensor_key} indisponible")
         channel = config.BME280_MUX_CHANNELS[sensor_key]
         self._mux.select_channel(channel)
         data = bme280_lib.sample(self._bus, config.BME280_ADDRESS, self._calib[sensor_key])
