@@ -23,7 +23,11 @@ sudo raspi-config nonint do_spi 0 2>/dev/null || echo "   (active le SPI à la m
 
 echo "==> 2/6  Paquets système"
 sudo apt-get update -y
-sudo apt-get install -y python3-venv python3-pip i2c-tools libgpiod2 mosquitto mosquitto-clients git
+sudo apt-get install -y python3-venv python3-pip i2c-tools mosquitto mosquitto-clients git
+# libgpiod : nom du paquet différent selon la version de l'OS (2 sur Bookworm,
+# 3 sur Trixie). Non bloquant si absent (RPi.GPIO/rpi-lgpio n'en dépendent pas).
+sudo apt-get install -y libgpiod2 || sudo apt-get install -y libgpiod3 || \
+  echo "   (libgpiod introuvable — non bloquant, on continue)"
 
 echo "==> 3/6  Groupes gpio/i2c/spi pour $USER_NAME"
 sudo usermod -aG gpio,i2c,spi "$USER_NAME" 2>/dev/null || true
