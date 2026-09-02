@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -23,6 +24,9 @@ BROKER = os.environ.get("MQTT_BROKER_HOST", "localhost")
 PORT = int(os.environ.get("MQTT_BROKER_PORT", "1883"))
 PREFIX = os.environ.get("MQTT_TOPIC_PREFIX", "mahali")
 INTERVAL = int(os.environ.get("MAHALI_UPLOAD_INTERVAL_S", "15"))
+# Caméra : on pousse un snapshot au backend toutes les SNAPSHOT_INTERVAL s.
+SNAPSHOT_INTERVAL = int(os.environ.get("MAHALI_SNAPSHOT_INTERVAL_S", "2"))
+CAMERA_URL = os.environ.get("MAHALI_CAMERA_URL", "http://localhost:8080")
 
 _sensors: dict = {}   # key -> {"value", "unit"}
 _relays: dict = {}    # channel -> {"is_on", "name", "key"}
@@ -80,7 +84,45 @@ def _upload() -> None:
         print(f"[cloud] envoi échoué: {exc}")
 
 
+def _post_snapshot(secret: str, jpeg: bytes) -> None:
+    boundary = "----mahaliboundary"
+    body = b"".join([
+        f'--{boundary}\r\nContent-Disposition: form-data; name="image"; filename="s.jpg"\r\n'.encode(),
+        b"Content-Type: image/jpeg\r\n\r\n",
+        jpeg,
+        f"\r\n--{boundary}--\r\n".encode(),
+    ])
+    req = urllib.request.Request(
+        f"{API_BASE}/api/controllers/snapshot/",
+        data=body,
+        method="POST",
+        headers={
+            "Content-Type": f"multipart/form-data; boundary={boundary}",
+            "X-Device-Secret": secret,
+        },
+    )
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        resp.read()
+
+
+def _snapshot_loop() -> None:
+    """Récupère le dernier snapshot local (8080) et le pousse au backend."""
+    while True:
+        time.sleep(SNAPSHOT_INTERVAL)
+        secret = store.load().get("secret")
+        if not secret:
+            continue
+        try:
+            with urllib.request.urlopen(f"{CAMERA_URL}/snapshot", timeout=5) as r:
+                jpeg = r.read()
+            if jpeg:
+                _post_snapshot(secret, jpeg)
+        except Exception:  # noqa: BLE001 - caméra absente / réseau : on réessaie
+            pass
+
+
 def main() -> None:
+    threading.Thread(target=_snapshot_loop, daemon=True).start()
     client = mqtt.Client()
     client.on_connect = _on_connect
     client.on_message = _on_message

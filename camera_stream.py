@@ -59,19 +59,26 @@ output = StreamingOutput()
 
 
 def _encode(arr) -> bytes:
-    """Encode un tableau (BGR, tel que renvoyé par picamera2 'RGB888') en JPEG."""
+    """Encode un tableau (BGR, picamera2 'RGB888') en JPEG, avec l'HORODATAGE
+    du contrôleur incrusté (prouve que le flux est bien en direct)."""
+    ts = time.strftime("%d/%m/%Y %H:%M:%S")
     try:
+        import io
+
+        from PIL import Image, ImageDraw
+
+        img = Image.fromarray(arr[:, :, ::-1])  # BGR -> RGB pour Pillow
+        d = ImageDraw.Draw(img)
+        w = 9 * len(ts) + 12
+        d.rectangle((8, img.height - 30, 8 + w, img.height - 6), fill=(7, 10, 4))
+        d.text((14, img.height - 26), ts, fill=(153, 255, 11))  # lime Mahali
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=QUALITY)
+        return buf.getvalue()
+    except Exception:  # noqa: BLE001 - fallback sans overlay
         import simplejpeg
 
         return simplejpeg.encode_jpeg(arr, quality=QUALITY, colorspace="BGR")
-    except Exception:  # noqa: BLE001 - fallback Pillow
-        import io
-
-        from PIL import Image
-
-        buf = io.BytesIO()
-        Image.fromarray(arr[:, :, ::-1]).save(buf, format="JPEG", quality=QUALITY)
-        return buf.getvalue()
 
 
 def _capture_loop(picam2) -> None:

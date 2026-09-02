@@ -26,8 +26,8 @@ sudo apt-get update -y
 sudo apt-get install -y python3-venv python3-pip i2c-tools mosquitto mosquitto-clients git
 # Caméra + GPIO : paquets SYSTÈME (pas pip). Le venv les verra via
 # --system-site-packages. python3-picamera2 = flux caméra ; python3-rpi.gpio = relais.
-sudo apt-get install -y python3-picamera2 python3-rpi.gpio || \
-  echo "   (picamera2/rpi.gpio partiels — non bloquant)"
+sudo apt-get install -y python3-picamera2 python3-rpi.gpio python3-pil || \
+  echo "   (picamera2/rpi.gpio/pil partiels — non bloquant)"
 # libgpiod : nom du paquet différent selon la version de l'OS (2 sur Bookworm,
 # 3 sur Trixie). Non bloquant si absent.
 sudo apt-get install -y libgpiod2 || sudo apt-get install -y libgpiod3 || \
