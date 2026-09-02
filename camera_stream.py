@@ -103,9 +103,15 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
 def main():
     logging.basicConfig(level=logging.INFO)
     picam2 = Picamera2()
-    picam2.configure(picam2.create_video_configuration(main={"size": (WIDTH, HEIGHT)}))
+    # format YUV420 = format natif de l'encodeur MJPEG matériel + on laisse
+    # picamera2 aligner la taille sur les strides optimaux : évite les rayures
+    # verticales (corruption de stride) observées avec XBGR8888.
+    cfg = picam2.create_video_configuration(main={"size": (WIDTH, HEIGHT), "format": "YUV420"})
+    picam2.align_configuration(cfg)
+    picam2.configure(cfg)
+    actual = cfg["main"]["size"]
     picam2.start_recording(MJPEGEncoder(), FileOutput(output), Quality.MEDIUM)
-    logger.info("Caméra démarrée — /stream et /snapshot sur le port %s (%sx%s).", PORT, WIDTH, HEIGHT)
+    logger.info("Caméra démarrée — /stream et /snapshot sur le port %s (%sx%s).", PORT, actual[0], actual[1])
     try:
         StreamingServer(("", PORT), Handler).serve_forever()
     finally:
