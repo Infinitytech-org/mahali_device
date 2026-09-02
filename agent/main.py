@@ -171,6 +171,7 @@ def _supervise(mqtt: dict, hw: dict, secret: str) -> None:
         "automatisation": [py, str(HERE / "automation_service.py")],
         "caméra": [py, str(HERE / "camera_stream.py")],
         "interface-web": [py, "-m", "local_ui.app"],
+        "cloud": [py, str(HERE / "cloud_uploader.py")],
     }
     # La caméra n'est lancée que si détectée.
     if not hw.get("camera", {}).get("present"):
