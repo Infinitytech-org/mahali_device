@@ -186,7 +186,11 @@ def _supervise(mqtt: dict, hw: dict, secret: str) -> None:
         except Exception as e:  # noqa: BLE001
             console.error(f"Impossible de lancer {name} : {e}")
 
-    _setup_cloud_bridge(mqtt)
+    # Synchro cloud : par défaut via HTTPS (cloud_uploader), robuste derrière un
+    # NAT. Le pont MQTT direct (nécessite d'exposer le broker du VPS) reste
+    # possible via MAHALI_CLOUD_BRIDGE=true.
+    if os.environ.get("MAHALI_CLOUD_BRIDGE", "false").strip().lower() in ("1", "true", "yes"):
+        _setup_cloud_bridge(mqtt)
     console.title("Démarrage des services")
     for name in services:
         start(name)
