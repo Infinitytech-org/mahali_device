@@ -59,16 +59,20 @@ echo "==> 6/6  Services systemd (agent + kiosque)"
 sudo tee /etc/systemd/system/mahali-agent.service >/dev/null <<EOF
 [Unit]
 Description=Agent Mahali (contrôleur de serre)
-After=network-online.target mosquitto.service
-Wants=network-online.target
+# Démarre dès le boot, CONNECTÉ OU NON (pas d'attente du réseau) : une fois
+# enrôlé/appairé, l'agent tourne hors-ligne et synchronise le cloud au retour.
+After=mosquitto.service
+Wants=mosquitto.service
 
 [Service]
 Type=simple
 User=$USER_NAME
 WorkingDirectory=$HERE
-ExecStart=$HERE/.venv/bin/python -m agent.main
+ExecStart=$HERE/start.sh
 Restart=always
 RestartSec=5
+# Journalise proprement (pas de TTY interactif attendu une fois enrôlé)
+StandardInput=null
 
 [Install]
 WantedBy=multi-user.target
