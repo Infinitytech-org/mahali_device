@@ -173,8 +173,12 @@ def _supervise(mqtt: dict, hw: dict, secret: str) -> None:
         "interface-web": [py, "-m", "local_ui.app"],
         "cloud": [py, str(HERE / "cloud_uploader.py")],
     }
-    # La caméra n'est lancée que si détectée.
-    if not hw.get("camera", {}).get("present"):
+    # La caméra LOCALE (CSI) n'est lancée que si détectée ET activée.
+    # Mettre MAHALI_LOCAL_CAMERA=false quand la caméra est déportée sur un
+    # ESP32-CAM (WiFi) : le cloud_uploader ira alors chercher l'image sur
+    # MAHALI_CAMERA_URL au lieu d'une caméra CSI locale.
+    local_cam = os.environ.get("MAHALI_LOCAL_CAMERA", "true").strip().lower() in ("1", "true", "yes")
+    if not local_cam or not hw.get("camera", {}).get("present"):
         services.pop("caméra", None)
 
     procs: dict[str, subprocess.Popen] = {}
