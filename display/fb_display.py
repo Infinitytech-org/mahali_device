@@ -13,8 +13,13 @@ Lancement :
 import json
 import os
 import struct
+import sys
 import time
 from datetime import datetime
+
+# Le script est dans display/ mais config.py et mqtt_client.py sont à la RACINE
+# du repo -> on ajoute la racine au chemin d'import (marche aussi via systemd).
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from PIL import Image, ImageDraw, ImageFont
 
