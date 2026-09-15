@@ -21,7 +21,25 @@ from PIL import Image, ImageDraw, ImageFont
 import config
 import mqtt_client
 
-FB = os.environ.get("MAHALI_FB_DEVICE", "/dev/fb1")
+def find_fb() -> str:
+    """Trouve automatiquement le framebuffer de l'écran SPI (fb_ili9486 / tft),
+    quel que soit son numéro. Surchargeable via MAHALI_FB_DEVICE."""
+    override = os.environ.get("MAHALI_FB_DEVICE")
+    if override:
+        return override
+    import glob
+
+    for path in sorted(glob.glob("/sys/class/graphics/fb*/name")):
+        try:
+            name = open(path).read().strip().lower()
+        except Exception:
+            continue
+        if any(k in name for k in ("ili9", "tft", "fb_", "spi", "st77")):
+            return "/dev/" + path.split("/")[-2]
+    return "/dev/fb1"
+
+
+FB = find_fb()
 
 
 def fb_geometry(dev: str):
