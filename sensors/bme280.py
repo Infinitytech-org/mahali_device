@@ -8,10 +8,12 @@ sont pas installées, génère des valeurs plausibles (variation sinusoïdale
 lente + bruit) pour permettre de développer/tester sans matériel.
 """
 
+import json
 import logging
 import math
 import random
 import time
+import urllib.request
 
 import config
 
@@ -35,11 +37,22 @@ class BME280Array:
     multiplexeur I2C entre chaque lecture."""
 
     def __init__(self):
-        self.simulate = config.SIMULATE or not HARDWARE_AVAILABLE
+        self.source = getattr(config, "BME_SOURCE", "i2c")
+        self.simulate = config.SIMULATE or (self.source == "i2c" and not HARDWARE_AVAILABLE)
         self._sim_t0 = time.time()
         self._bus = None
         self._mux = None
         self._calib = {}
+        # Cache des dernières mesures ESP32 (source="esp32").
+        self._esp_cache: dict = {}
+        self._esp_water = None  # niveau d'eau % lu depuis l'ESP32 (ou None)
+        self._esp_ts = 0.0
+
+        # Source ESP32 : aucun accès I2C local, on lit tout en HTTP.
+        if self.source == "esp32":
+            self.simulate = False
+            logger.info("Capteurs air = ESP32-CAM en WiFi (%s).", config.ESP32_NODE_URL)
+            return
 
         if self.simulate:
             if not HARDWARE_AVAILABLE:
@@ -65,14 +78,62 @@ class BME280Array:
         if not self._calib:
             logger.warning("Aucun BME280 détecté sur les canaux configurés.")
 
+    def _esp_fetch(self) -> dict:
+        """Récupère /telemetry de l'ESP32 (cache 5 s) -> {clé: (temp, hum)}."""
+        now = time.time()
+        if self._esp_cache and (now - self._esp_ts) < 5.0:
+            return self._esp_cache
+        url = f"{config.ESP32_NODE_URL}/telemetry"
+        try:
+            with urllib.request.urlopen(url, timeout=5) as r:
+                payload = json.loads(r.read().decode())
+        except Exception as exc:  # noqa: BLE001 - on garde l'ancien cache si dispo
+            logger.warning("ESP32 injoignable (%s): %s", url, exc)
+            self._esp_ts = now
+            return self._esp_cache
+        result: dict = {}
+        for z in payload.get("zones", []):
+            if not z.get("ok"):
+                continue
+            key = config.ESP32_ZONE_TO_KEY.get(z.get("name"))
+            if not key:
+                continue
+            temp = z.get("temperature")
+            hum = z.get("humidity")
+            result[key] = (
+                round(float(temp), 2) if temp is not None else float("nan"),
+                round(float(hum), 2) if hum is not None else float("nan"),
+            )
+        if result:
+            self._esp_cache = result
+        wl = payload.get("water_level")
+        self._esp_water = float(wl) if wl is not None else None
+        self._esp_ts = now
+        return self._esp_cache
+
+    def water_level(self):
+        """Niveau d'eau % lu depuis l'ESP32 (source='esp32'), ou None."""
+        if self.source != "esp32":
+            return None
+        self._esp_fetch()
+        return self._esp_water
+
     def available_zones(self) -> list:
         """Zones dont le capteur est réellement présent (ou toutes en simu)."""
+        if self.source == "esp32":
+            return list(self._esp_fetch().keys())
         if self.simulate:
             return list(config.BME280_MUX_CHANNELS.keys())
         return list(self._calib.keys())
 
     def read_zone(self, sensor_key: str) -> tuple[float, float]:
         """Retourne (température °C, humidité %) pour la zone `sensor_key`."""
+        if self.source == "esp32":
+            data = self._esp_fetch()
+            if sensor_key not in data:
+                raise RuntimeError(f"ESP32 zone {sensor_key} indisponible")
+            return data[sensor_key]
+
         if self.simulate:
             return self._simulate(sensor_key)
 

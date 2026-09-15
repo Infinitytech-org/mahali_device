@@ -25,6 +25,7 @@ Lancement :
     MAHALI_SIMULATE=true python automation_service.py   # tests sans matériel
 """
 
+import datetime
 import json
 import logging
 import time
@@ -103,6 +104,14 @@ class AutomationService:
             )
 
     # --- règle 2 : pompe principale --------------------------------------
+    def _is_daytime(self) -> bool:
+        """Vrai si l'heure locale est dans la fenêtre jour (gère nuit à cheval)."""
+        h = datetime.datetime.now().hour
+        start, end = config.DAY_START_HOUR, config.DAY_END_HOUR
+        if start <= end:
+            return start <= h < end
+        return h >= start or h < end
+
     def _tick_main_pump(self) -> None:
         level = self._water_level
 
@@ -135,9 +144,11 @@ class AutomationService:
             return
 
         elapsed = time.monotonic() - self._pump_phase_started_at
-        duration = (
-            config.MAIN_PUMP_CYCLE_ON_SECONDS if self._pump_phase_on else config.MAIN_PUMP_CYCLE_OFF_SECONDS
-        )
+        day = self._is_daytime()
+        if self._pump_phase_on:
+            duration = config.PUMP_DAY_ON_SECONDS if day else config.PUMP_NIGHT_ON_SECONDS
+        else:
+            duration = config.PUMP_DAY_OFF_SECONDS if day else config.PUMP_NIGHT_OFF_SECONDS
         if elapsed >= duration:
             self._pump_phase_on = not self._pump_phase_on
             self._pump_phase_started_at = time.monotonic()

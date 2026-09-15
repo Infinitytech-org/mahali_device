@@ -69,7 +69,15 @@ class SensorService:
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Lecture pH ignorée: %s", exc)
 
-        if config.WATER_LEVEL_ENABLED:
+        # Niveau d'eau : soit depuis l'ESP32 (source="esp32"), soit HC-SR04 local.
+        if getattr(config, "BME_SOURCE", "i2c") == "esp32":
+            try:
+                level = self._bme.water_level()
+                if level is not None:
+                    self._publish(config.SENSOR_WATER_LEVEL, level, config.SENSOR_UNITS[config.SENSOR_WATER_LEVEL])
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Lecture niveau d'eau (ESP32) ignorée: %s", exc)
+        elif config.WATER_LEVEL_ENABLED:
             try:
                 level = self._water.read_level_percent()
                 self._publish(config.SENSOR_WATER_LEVEL, level, config.SENSOR_UNITS[config.SENSOR_WATER_LEVEL])
