@@ -20,6 +20,20 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# IMPORTANT : fb_display tourne en service INDÉPENDANT de l'agent, il n'hérite
+# donc pas de MQTT_TOPIC_PREFIX (= "mahali/<slug>"). Sans ça il écoute
+# "mahali/sensors/#" au lieu de "mahali/<slug>/sensors/#" -> aucune donnée.
+# On lit le slug dans le store et on fixe le préfixe AVANT d'importer config.
+if not os.environ.get("MQTT_TOPIC_PREFIX"):
+    try:
+        from agent import store as _store
+
+        _slug = _store.load().get("greenhouse")
+        if _slug:
+            os.environ["MQTT_TOPIC_PREFIX"] = f"mahali/{_slug}"
+    except Exception:
+        pass
+
 from PIL import Image, ImageDraw, ImageFont
 
 import config
@@ -221,7 +235,7 @@ def render():
     dot = LIME if state["online"] else RED
     d.ellipse([W - 26, 11, W - 12, 25], fill=dot)
 
-    top, ch = 40, H - 34 - TABH - 46
+    top = 40
 
     if PAGE == "vue":
         temp = _avg([config.SENSOR_TEMP_CENTER, config.SENSOR_TEMP_EXIT, config.SENSOR_TEMP_ENTRY])
@@ -229,10 +243,13 @@ def render():
         water = state["sensors"].get(config.SENSOR_WATER_LEVEL)
         relays_on = sum(1 for v in state["relays"].values() if v)
         cw = (W - 30) // 2
+        # 2 rangées entre le bandeau (top) et la barre d'onglets (H - TABH).
+        ch = (H - TABH - top - 8) // 2
+        r2 = top + ch + 8
         _card(d, 10, top, cw, ch, "TEMPÉRATURE", _fmt(temp, " C"), ORANGE)
         _card(d, 20 + cw, top, cw, ch, "HUMIDITÉ", _fmt(hum, " %"), CYAN)
-        _card(d, 10, top + ch + 8, cw, ch, "RÉSERVOIR", _fmt(water, " %", 0), BLUE)
-        _card(d, 20 + cw, top + ch + 8, cw, ch, "RELAIS ON", f"{relays_on}/{len(config.ALL_CHANNELS)}", LIME)
+        _card(d, 10, r2, cw, ch, "RÉSERVOIR", _fmt(water, " %", 0), BLUE)
+        _card(d, 20 + cw, r2, cw, ch, "RELAIS ON", f"{relays_on}/{len(config.ALL_CHANNELS)}", LIME)
 
     elif PAGE == "climat":
         zones = [("Entrée", config.SENSOR_TEMP_ENTRY, config.SENSOR_HUMIDITY_ENTRY),
