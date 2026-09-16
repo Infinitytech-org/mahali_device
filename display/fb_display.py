@@ -52,8 +52,16 @@ def fb_geometry(dev: str):
     return w, h, bpp
 
 
+def fb_stride(dev: str) -> int:
+    try:
+        return int(open("/sys/class/graphics/" + os.path.basename(dev) + "/stride").read().strip())
+    except Exception:
+        return 0  # 0 => on calculera W*bpp
+
+
 FB = find_fb()
 W, H, BPP = fb_geometry(FB)
+STRIDE = fb_stride(FB) or (W * (BPP // 8))
 
 # --------------------------------------------------------------- palette -----
 BG = (8, 18, 11)
@@ -296,8 +304,14 @@ def handle_tap(x, y):
 def to_rgb565(img):
     import numpy as np
     a = np.asarray(img, dtype=np.uint16)
-    return ((((a[:, :, 0] & 0xF8) << 8) | ((a[:, :, 1] & 0xFC) << 3) | (a[:, :, 2] >> 3))
-            .astype("<u2").tobytes())
+    rgb = (((a[:, :, 0] & 0xF8) << 8) | ((a[:, :, 1] & 0xFC) << 3) | (a[:, :, 2] >> 3)).astype("<u2")
+    line = W * 2
+    if STRIDE == line:
+        return rgb.tobytes()
+    # Le framebuffer a des lignes plus larges (padding) -> on cale chaque ligne.
+    padded = np.zeros((H, STRIDE // 2), dtype="<u2")
+    padded[:, :W] = rgb
+    return padded.tobytes()
 
 
 def main():
