@@ -130,28 +130,22 @@ TANK_FULL_DISTANCE_CM = _float("MAHALI_TANK_FULL_DISTANCE_CM", 10.0)
 
 # --- Relais (doc §3.4.2) : 8 canaux, module actif à l'état BAS --------------
 RELAY_ACTIVE_LOW = _bool("MAHALI_RELAY_ACTIVE_LOW", "true")
-# Broches choisies dans la ZONE DU FOND du connecteur (broches physiques 29-40),
-# libres même quand l'écran SPI est posé (il occupe l'avant + les broches SPI
-# GPIO7/8/9/10/11). Format : GPIO (BCM) = broche physique.
-#   1: GPIO5=pin29   2: GPIO6=pin31   3: GPIO13=pin33  4: GPIO16=pin36
-#   5: GPIO19=pin35  6: GPIO20=pin38  7: GPIO21=pin40  8: GPIO26=pin37
-# NB actif-bas : GPIO5/6 (pull-up par défaut) démarrent OFF au boot -> on y met
-# la POMPE (canal 1) et le canal 2. Les autres (pull-down) peuvent cliqueter
-# ~30 s au boot avant le démarrage du service : ajouter une résistance 10k du IN
-# vers +3.3V si c'est gênant.
+# 4 GROUPES REELS (chaque groupe partage une meme alimentation = UN seul canal
+# relais). Broches sur la zone ARRIERE du connecteur (libres sous l'ecran SPI).
+#   1 = Pompe principale (5V)      GPIO5  = pin 29
+#   2 = Ventilos BAS (groupe)      GPIO6  = pin 31
+#   3 = Ventilos HAUT (groupe)     GPIO13 = pin 33
+#   4 = Pompes canari (groupe, 5V) GPIO16 = pin 36
+# (GPIO5/6 pull-up par defaut -> demarrent OFF au boot : bien pour pompe + bas.)
 RELAY_GPIO_PINS = {
-    1: _int("MAHALI_RELAY1_PIN", 5),    # Pompe principale hydroponique (pin 29)
-    2: _int("MAHALI_RELAY2_PIN", 6),    # Ventilateur bas est — gauche   (pin 31)
-    3: _int("MAHALI_RELAY3_PIN", 13),   # Ventilateur bas est — droite   (pin 33)
-    4: _int("MAHALI_RELAY4_PIN", 16),   # Ventilateur haut est           (pin 36)
-    5: _int("MAHALI_RELAY5_PIN", 19),   # Ventilateur ouest 1            (pin 35)
-    6: _int("MAHALI_RELAY6_PIN", 20),   # Ventilateur ouest 2            (pin 38)
-    7: _int("MAHALI_RELAY7_PIN", 21),   # Ventilateur ouest 3            (pin 40)
-    8: _int("MAHALI_RELAY8_PIN", 26),   # Pompes canari                  (pin 37)
+    1: _int("MAHALI_RELAY1_PIN", 5),    # Pompe principale (5V)      — pin 29
+    2: _int("MAHALI_RELAY2_PIN", 6),    # Ventilos BAS (groupe)      — pin 31
+    3: _int("MAHALI_RELAY3_PIN", 13),   # Ventilos HAUT (groupe)     — pin 33
+    4: _int("MAHALI_RELAY4_PIN", 16),   # Pompes canari (groupe, 5V) — pin 36
 }
 MAIN_PUMP_CHANNEL = 1
-COOLING_FAN_CHANNELS = [2, 3, 4, 5, 6, 7]
-CANARI_PUMP_CHANNEL = 8
+COOLING_FAN_CHANNELS = [2, 3]   # ventilos bas + haut (les 2 groupes)
+CANARI_PUMP_CHANNEL = 4
 ALL_CHANNELS = list(RELAY_GPIO_PINS.keys())
 
 # --- Règles d'automatisation (doc §3.6.2) -----------------------------------
