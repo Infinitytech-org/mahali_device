@@ -172,6 +172,7 @@ def _supervise(mqtt: dict, hw: dict, secret: str) -> None:
         "caméra": [py, str(HERE / "camera_stream.py")],
         "interface-web": [py, "-m", "local_ui.app"],
         "cloud": [py, str(HERE / "cloud_uploader.py")],
+        "cloud-ws": [py, str(HERE / "cloud_ws.py")],  # temps réel relais (descendant)
     }
     # La caméra LOCALE (CSI) n'est lancée que si détectée ET activée.
     # Mettre MAHALI_LOCAL_CAMERA=false quand la caméra est déportée sur un

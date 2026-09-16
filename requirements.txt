@@ -11,3 +11,4 @@ RPi.bme280>=0.2,<0.3   # driver BME280 (import "bme280" : load_calibration_param
 RPi.GPIO>=0.7,<1.0      # GPIO (relais, HC-SR04) — Raspberry Pi uniquement
 # NB caméra : picamera2 s'installe par APT (python3-picamera2), pas par pip.
 # Le venv doit être créé avec --system-site-packages pour le voir.
+websocket-client>=1.6,<2.0   # canal descendant temps reel (cloud_ws.py)
