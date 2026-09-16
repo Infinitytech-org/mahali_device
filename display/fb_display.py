@@ -322,6 +322,7 @@ def main():
     threading.Thread(target=_camera_loop, daemon=True).start()
 
     fbf = os.open(FB, os.O_RDWR)
+    last = None
     try:
         while True:
             if _tap["xy"]:
@@ -329,9 +330,13 @@ def main():
                 _tap["xy"] = None
                 handle_tap(x, y)
             data = to_rgb565(render()) if BPP == 16 else render().convert("RGBA").tobytes()
-            os.lseek(fbf, 0, os.SEEK_SET)
-            os.write(fbf, data)
-            time.sleep(0.3 if PAGE == "cam" else 0.6)
+            # N'ecrit QUE si l'image a change -> supprime le scintillement des
+            # pages fixes (seule la camera, qui change, se redessine).
+            if data != last:
+                os.lseek(fbf, 0, os.SEEK_SET)
+                os.write(fbf, data)
+                last = data
+            time.sleep(0.2 if PAGE == "cam" else 0.5)
     finally:
         os.close(fbf)
         _client.loop_stop()
