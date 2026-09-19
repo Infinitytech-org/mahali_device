@@ -32,6 +32,29 @@ def _int(name: str, default: int) -> int:
         return default
 
 
+# --- Modèle du Raspberry Pi --------------------------------------------------
+# Détecté à chaud pour adapter les réglages dépendant du matériel (ex.
+# emplacement du hub USB pour le ventilo de boîtier). Le Pi 3 B a un WiFi
+# 2,4 GHz UNIQUEMENT et un hub USB différent du Pi 4.
+def pi_model() -> str:
+    try:
+        with open("/proc/device-tree/model") as f:
+            return f.read().replace("\x00", "").strip()
+    except Exception:
+        return ""
+
+
+PI_MODEL = pi_model()
+IS_PI3 = "Raspberry Pi 3" in PI_MODEL
+IS_PI4 = "Raspberry Pi 4" in PI_MODEL
+
+# Emplacement uhubctl du hub USB (ventilo de boîtier).
+#   Pi 3 B / 3 B+ : hub LAN9514/LAN7515 en "1-1" (⚠ coupe AUSSI l'Ethernet).
+#   Pi 4          : hub VL805 en "2".
+# Surchageable via MAHALI_FAN_HUB.
+USB_HUB_LOCATION = os.environ.get("MAHALI_FAN_HUB", "1-1" if IS_PI3 else "2")
+
+
 # --- Mode simulation ---------------------------------------------------------
 # A activer (SIMULATE=true) quand il n'y a pas de matériel réel branché : les
 # modules sensors_hw/*.py génèrent alors des valeurs plausibles (bruitées,

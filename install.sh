@@ -23,7 +23,7 @@ sudo raspi-config nonint do_spi 0 2>/dev/null || echo "   (active le SPI à la m
 
 echo "==> 2/6  Paquets système"
 sudo apt-get update -y
-sudo apt-get install -y python3-venv python3-pip i2c-tools mosquitto mosquitto-clients git
+sudo apt-get install -y python3-venv python3-pip i2c-tools mosquitto mosquitto-clients git uhubctl
 # Caméra + GPIO : paquets SYSTÈME (pas pip). Le venv les verra via
 # --system-site-packages. python3-picamera2 = flux caméra ; python3-rpi.gpio = relais.
 sudo apt-get install -y python3-picamera2 python3-rpi.gpio python3-pil || \
@@ -78,7 +78,31 @@ StandardInput=null
 WantedBy=multi-user.target
 EOF
 
+# Ventilo de boîtier (refroidissement CPU) — service ROOT (uhubctl exige root).
+# L'emplacement du hub USB est choisi automatiquement selon le modèle
+# (Pi 3 = "1-1", Pi 4 = "2") dans config.py / box_fan.py.
+echo "==> Service ventilo boîtier (mahali-boxfan, root)"
+PY_BIN="$HERE/.venv/bin/python"
+[ -x "$PY_BIN" ] || PY_BIN="$(command -v python3)"
+sudo tee /etc/systemd/system/mahali-boxfan.service >/dev/null <<EOF
+[Unit]
+Description=Mahali - ventilo de boitier (refroidissement CPU du Pi)
+After=multi-user.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=$HERE
+ExecStart=$PY_BIN $HERE/box_fan.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
 sudo systemctl daemon-reload
+sudo systemctl enable --now mahali-boxfan 2>/dev/null || true
 echo
 echo "============================================================"
 echo "  Installation terminée."
