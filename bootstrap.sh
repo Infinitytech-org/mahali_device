@@ -42,4 +42,6 @@ else
 fi
 
 echo; echo "Ventilo boîtier : journalctl -u mahali-boxfan -f"
+echo "Écran tactile   : journalctl -u mahali-display -f"
+echo "   (si l'écran vient d'être activé, un 'sudo reboot' peut être requis)"
 echo "Terminé."

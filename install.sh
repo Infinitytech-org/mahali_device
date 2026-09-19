@@ -103,9 +103,60 @@ EOF
 
 sudo systemctl daemon-reload
 sudo systemctl enable --now mahali-boxfan 2>/dev/null || true
+
+# ---------------------------------------------------------------------------
+# Écran tactile SPI 3,5" ILI9486 + tactile ADS7846 (overlay "piscreen").
+# Idempotent : ajoute l'overlay dans config.txt (si absent), installe evdev,
+# et pose le service mahali-display (root + MAHALI_HOME pour lire le slug).
+# ---------------------------------------------------------------------------
+echo "==> Écran tactile SPI (mahali-display)"
+sudo apt-get install -y python3-evdev python3-pil >/dev/null 2>&1 || \
+  echo "   (python3-evdev/pil partiels — tactile éventuellement indisponible)"
+
+# config.txt : Bookworm = /boot/firmware/config.txt, sinon /boot/config.txt
+BOOTCFG=/boot/firmware/config.txt
+[ -f "$BOOTCFG" ] || BOOTCFG=/boot/config.txt
+if [ -f "$BOOTCFG" ]; then
+  grep -q "^dtparam=spi=on" "$BOOTCFG" || echo "dtparam=spi=on" | sudo tee -a "$BOOTCFG" >/dev/null
+  if grep -q "^dtoverlay=piscreen" "$BOOTCFG"; then
+    echo "   overlay écran déjà présent dans $BOOTCFG"
+  else
+    echo "dtoverlay=piscreen,speed=16000000,rotate=90" | sudo tee -a "$BOOTCFG" >/dev/null
+    echo "   overlay écran ajouté dans $BOOTCFG -> REBOOT requis pour l'activer"
+    NEED_REBOOT=1
+  fi
+else
+  echo "   (config.txt introuvable — ajoute l'overlay manuellement, voir docs/BRANCHEMENT.md)"
+fi
+
+# Service : root (accès /dev/fb* et /dev/input), MAHALI_HOME pour trouver le
+# store ~/.mahali/device.json (sinon root lit /root/.mahali -> mauvais préfixe MQTT).
+sudo tee /etc/systemd/system/mahali-display.service >/dev/null <<EOF
+[Unit]
+Description=Mahali - ecran tactile local (framebuffer SPI)
+After=mosquitto.service
+Wants=mosquitto.service
+
+[Service]
+Type=simple
+User=root
+Environment=MAHALI_HOME=$HOME/.mahali
+WorkingDirectory=$HERE
+ExecStart=$PY_BIN $HERE/display/fb_display.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now mahali-display 2>/dev/null || true
+
 echo
 echo "============================================================"
 echo "  Installation terminée."
+[ "${NEED_REBOOT:-0}" = "1" ] && echo "  ⚠️  REBOOT requis (overlay écran) :  sudo reboot"
 echo "  ENRÔLEMENT (1ère fois, interactif) :   ./start.sh"
 echo
 echo "  Pour un démarrage automatique au boot, APRÈS le 1er"
