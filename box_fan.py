@@ -5,13 +5,9 @@ Allume le ventilo au-dessus de MAHALI_FAN_ON_C, l'éteint sous MAHALI_FAN_OFF_C
 (hystérésis pour éviter les à-coups). Coupe/rallume l'alimentation USB via
 `uhubctl`.
 
-uhubctl coupe le hub USB en entier (tous les ports d'un coup) : le ventilo doit
-être le SEUL périphérique branché sur l'USB (l'ESP32 est déporté en WiFi, OK).
-
-⚠️ Pi 4 : hub VL805 en "2".
-⚠️ Pi 3 B/B+ : hub LAN9514/LAN7515 en "1-1" — couper l'USB coupe AUSSI
-l'Ethernet (même puce). Sans souci ici car on est en WiFi. L'emplacement est
-choisi automatiquement selon le modèle (voir config.USB_HUB_LOCATION).
+⚠️ Sur Pi 4, uhubctl coupe le hub USB-A en entier (tous les ports d'un coup) :
+le ventilo doit être le SEUL périphérique branché sur l'USB-A (l'ESP32 est
+déporté en WiFi, donc c'est bon).
 
 Lancement :
     sudo .venv/bin/python box_fan.py
@@ -21,16 +17,11 @@ import os
 import subprocess
 import time
 
-try:  # emplacement du hub selon le modèle (Pi 3 vs Pi 4), source unique = config
-    from config import USB_HUB_LOCATION as _HUB_DEFAULT, PI_MODEL
-except Exception:  # box_fan lancé hors du dossier -> repli Pi 4
-    _HUB_DEFAULT, PI_MODEL = "2", ""
-
 FAN_ON = float(os.environ.get("MAHALI_FAN_ON_C", "60"))    # allume à >= 60°C
 FAN_OFF = float(os.environ.get("MAHALI_FAN_OFF_C", "50"))   # éteint à <= 50°C
 INTERVAL = float(os.environ.get("MAHALI_FAN_INTERVAL_S", "10"))
-# Emplacement uhubctl choisi selon le modèle (surchargeable via MAHALI_FAN_HUB).
-HUB_LOC = os.environ.get("MAHALI_FAN_HUB", _HUB_DEFAULT)
+# Emplacement uhubctl : Pi 4 = "2" (hub VL805). Port "a" = tous les ports du hub.
+HUB_LOC = os.environ.get("MAHALI_FAN_HUB", "2")
 HUB_PORT = os.environ.get("MAHALI_FAN_PORT", "a")
 
 
@@ -56,8 +47,7 @@ def set_usb(on: bool) -> None:
 
 
 def main() -> None:
-    print(f"Ventilo boîtier [{PI_MODEL or 'modèle inconnu'}] : ON>={FAN_ON}°C, "
-          f"OFF<={FAN_OFF}°C (USB hub {HUB_LOC} port {HUB_PORT})")
+    print(f"Ventilo boîtier : ON>={FAN_ON}°C, OFF<={FAN_OFF}°C (USB hub {HUB_LOC} port {HUB_PORT})")
     state = None  # inconnu au départ -> on force une décision
     while True:
         t = cpu_temp()
